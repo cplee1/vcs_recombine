@@ -19,7 +19,7 @@ Simply clone the repository and make the pipeline executable with:
 
     chmod +x vcs_recombine.nf
 
-Optionally, add the pipeline script to your $PATH. You can now execute the pipeline as you would any other script.
+Optionally, add the pipeline script to your `$PATH`. You can now execute the pipeline as you would any other script.
 
 ## Using the Pipeline
 The basic syntax is as follows. Inputs in square brackets are optional.
