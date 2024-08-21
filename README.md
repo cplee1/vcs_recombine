@@ -2,11 +2,11 @@
 A simple pipeline to recombine legacy VCS data, based on the vcs_download.nf pipeline from mwa_search.
 
 ## Nextflow Setup
-I recommend using the latest binary for Nextflow. To do this, navigate to a directory in your `$PATH` (or add a directory to your `$PATH`) and run the following:
+I recommend using the latest version of Nextflow. To do this, navigate to a directory in your `$PATH` and run the following:
 
-    wget -qO- https://get.nextflow.io | bash
+    curl -s https://get.nextflow.io | bash
 
-This will download the Nextflow binary to your current directory. Then make it executable with:
+This will download the Nextflow binary into your current directory. Then make it executable with:
 
     chmod +x nextflow
 
@@ -30,7 +30,7 @@ The options are as follows:
 
   - `--download_dir` : The path to the directory containing the raw `.dat` files
   - `--obsid` : The observation ID
-  - `--offset` : The offset (in seconds) from the beginning of the observation
+  - `--offset` : The offset (in seconds) from the observation ID
   - `--duration` : The duration (in seconds) of the downloaded data
   - `--vcs_dir` : The path to the base directory of VCS downloads. Default: `/scratch/mwavcs/$USER/vcs_downloads`
 
