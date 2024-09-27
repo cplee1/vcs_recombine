@@ -1,8 +1,8 @@
 # VCS Recombination Pipeline
-A simple pipeline to recombine legacy VCS data, based on the vcs_download.nf pipeline from mwa_search.
+A simple pipeline to recombine legacy VCS data.
 
 ## Nextflow Setup
-I recommend using the latest version of Nextflow. To do this, navigate to a directory in your `$PATH` and run the following:
+To download the latest version of Nextflow, run:
 
     curl -s https://get.nextflow.io | bash
 
@@ -10,27 +10,27 @@ This will download the Nextflow binary into your current directory. Then make it
 
     chmod +x nextflow
 
-Nextflow requires Java to run. On Garrawarla, this can be loaded with:
+Then move Nextflow into an executable path. Nextflow requires Java to run. On Garrawarla, this can be loaded with:
 
     module load java/17
 
-## Pipeline Setup
-Simply clone the repository and make the pipeline executable with:
-
-    chmod +x vcs_recombine.nf
-
-Optionally, add the pipeline script to your `$PATH`. You can now execute the pipeline as you would any other script.
-
 ## Using the Pipeline
-The basic syntax is as follows. Inputs in square brackets are optional.
+Simply run:
 
-    vcs_recombine.nf --download_dir </path/to/raw/data> --obsid <obsid> --offset <offset> --duration <duration> [--vcs_dir </path/to/vcs>]
+```bash
+nextflow run cplee1/vcs_recombine \
+    --download_dir <PATH> \
+    --obsid <OBSID> \
+    --offset <OFFSET> \
+    --duration <DURATION> \
+    --vcs_dir <PATH>
+```
 
 The options are as follows:
 
   - `--download_dir` : The path to the directory containing the raw `.dat` files
   - `--obsid` : The observation ID
-  - `--offset` : The offset (in seconds) from the observation ID
+  - `--offset` : The offset (in seconds) between the observation ID and the first second of data
   - `--duration` : The duration (in seconds) of the downloaded data
   - `--vcs_dir` : The path to the base directory of VCS downloads. Default: `/scratch/mwavcs/$USER/vcs_downloads`
 
