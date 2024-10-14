@@ -27,14 +27,14 @@ process CHECK_DIRS {
         exit 1
     fi
     
-    if [[ ! -e \$(find ${download_dir} -type f -name *.dat | head -n1) ]]; then
+    if [[ ! -e \$(find -L ${download_dir} -type f -name *.dat | head -n1) ]]; then
         echo "ERROR :: No raw (.dat) files found. Exiting."
         exit 1
     fi
 
     if [[ ! -d ${obsid_dir}/combined ]]; then
         mkdir -p ${obsid_dir}/combined
-    elif [[ -e \$(find ${obsid_dir}/combined -type f -name *.dat | head -n1) ]]; then
+    elif [[ -e \$(find -L ${obsid_dir}/combined -type f -name *.dat | head -n1) ]]; then
         echo "ERROR :: Combined (.dat) files already present. Exiting."
         exit 1
     fi
