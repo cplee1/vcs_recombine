@@ -33,8 +33,8 @@ process CHECK_DIRS {
     # Get the start time and duration
     IFS='_' read -r obsid0 gpstime0 boxname0 stream0 <<< "\$(first_arg '${download_dir}'/*.dat)"
     IFS='_' read -r obsid1 gpstime1 boxname1 stream1 <<< "\$(last_arg '${download_dir}'/*.dat)"
-    offset=\$(((gpstime0-obsid0)))
-    duration=\$(((gpstime1-gpstime0+1)))
+    offset=\$((gpstime0-obsid0))
+    duration=\$((gpstime1-gpstime0+1))
 
     # Make a directory for the combined data
     outdir='${obsid_dir}/combined'
