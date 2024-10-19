@@ -88,9 +88,10 @@ process RECOMBINE {
     beforeScript "module use ${params.module_dir}; module load vcstools/master; module load mwa-voltage/master"
 
     input:
-    tuple val(obsid_dir), val(download_dir)
-    tuple val(begin), val(increment)
     val(obsid)
+    val(obsid_dir)
+    val(download_dir)
+    tuple val(begin), val(increment)
 
     script:
     """
@@ -139,6 +140,11 @@ workflow {
                 .splitCsv()
                 .map { job -> [Integer.valueOf(job[0]), Integer.valueOf(job[1])] }
             
-            RECOMBINE(CHECK_DIRS.out, recombine_jobs, params.obsid)
+            RECOMBINE(
+                params.obsid,
+                "${params.vcs_dir}/${params.obsid}",
+                params.download_dir,
+                recombine_jobs
+            )
         }
 }
