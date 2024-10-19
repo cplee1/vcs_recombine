@@ -19,8 +19,8 @@ process CHECK_DIRS {
     """
     log_err() { echo "ERROR: \$@" 1>&2; exit 1; }
     count() { echo "\$#"; }
-    first_arg() { echo "\$1"; }
-    last_arg() { echo "\${@: -1}"; }
+    first_arg() { echo "\$1" | xargs -n1 basename; }
+    last_arg() { echo "\${@: -1}" | xargs -n1 basename; }
 
     # Check that the specified directories exist
     [[ -d ${obsid_dir} ]] || log_err "Directory does not exist: ${obsid_dir}"
