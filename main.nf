@@ -23,8 +23,8 @@ process CHECK_DIRS {
     last_arg() { echo "\${@: -1}"; }
 
     # Check that the specified directories exist
-    [[ ! -d ${obsid_dir} ]] || log_err "Directory does not exist: ${obsid_dir}"
-    [[ ! -d ${download_dir} ]] || log_err "Directory does not exist: ${download_dir}"
+    [[ -d ${obsid_dir} ]] || log_err "Directory does not exist: ${obsid_dir}"
+    [[ -d ${download_dir} ]] || log_err "Directory does not exist: ${download_dir}"
 
     # Check that the raw data exists
     [[ \$(shopt -s nullglob; count '${download_dir}'/*.dat) -gt 0 ]] \\
