@@ -52,10 +52,7 @@ process GENERATE_RECOMBINE_JOBS {
     shell '/usr/bin/env', 'python'
 
     input:
-    val(obsid)
-    val(offset)
-    val(duration)
-    val(increment)
+    tuple val(obsid), val(offset), val(duration), val(increment)
 
     output:
     path("${obsid}_recombine_jobs.txt")
