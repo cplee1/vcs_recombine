@@ -123,14 +123,13 @@ workflow {
 
             CHECK_DIRS("${params.vcs_dir}/${params.obsid}", params.download_dir)
 
-            data_info = Channel.empty()
             if (params.offset != null && params.duration != null) {
                 CHECK_DIRS.out
-                    .map { [params.obsid, params.offset, params.duration, params.increment] }
+                    .map { [Integer.valueOf(params.obsid), Integer.valueOf(params.offset), Integer.valueOf(params.duration), Integer.valueOf(params.increment)] }
                     .set { data_info }
             } else {
                 CHECK_DIRS.out
-                    .map { [params.obsid, it[0], it[1], params.increment] }
+                    .map { [Integer.valueOf(params.obsid), Integer.valueOf(it[0]), Integer.valueOf(it[1]), Integer.valueOf(params.increment)] }
                     .set { data_info }
             }
 
