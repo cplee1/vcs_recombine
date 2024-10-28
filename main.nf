@@ -13,30 +13,35 @@ process CHECK_DIRS {
     val(download_dir)
 
     output:
-    tuple val(obsid_dir), val(download_dir)
+    tuple env(offset), env(duration)
 
     script:
     """
-    if [[ ! -d ${obsid_dir} ]]; then
-        echo "ERROR :: The observation directory does not exist: ${obsid_dir}"
-        exit 1
-    fi
+    log_err() { echo "ERROR: \$@" 1>&2; exit 1; }
+    count() { echo "\$#"; }
+    first_arg() { echo "\$1" | xargs -n1 basename; }
+    last_arg() { echo "\${@: -1}" | xargs -n1 basename; }
 
-    if [[ ! -d ${download_dir} ]]; then
-        echo "ERROR :: The download directory does not exist ${download_dir}"
-        exit 1
-    fi
-    
-    if [[ ! -e \$(find -L ${download_dir} -type f -name *.dat | head -n1) ]]; then
-        echo "ERROR :: No raw (.dat) files found. Exiting."
-        exit 1
-    fi
+    # Check that the specified directories exist
+    [[ -d ${obsid_dir} ]] || log_err "Directory does not exist: ${obsid_dir}"
+    [[ -d ${download_dir} ]] || log_err "Directory does not exist: ${download_dir}"
 
-    if [[ ! -d ${obsid_dir}/combined ]]; then
-        mkdir -p ${obsid_dir}/combined
-    elif [[ -e \$(find -L ${obsid_dir}/combined -type f -name *.dat | head -n1) ]]; then
-        echo "ERROR :: Combined (.dat) files already present. Exiting."
-        exit 1
+    # Check that the raw data exists
+    [[ \$(shopt -s nullglob; count '${download_dir}'/*.dat) -gt 0 ]] \\
+        || log_err "No raw (.dat) files found in directory: ${download_dir}"
+
+    # Get the start time and duration
+    IFS='_' read -r obsid0 gpstime0 boxname0 stream0 <<< "\$(first_arg '${download_dir}'/*.dat)"
+    IFS='_' read -r obsid1 gpstime1 boxname1 stream1 <<< "\$(last_arg '${download_dir}'/*.dat)"
+    offset=\$((gpstime0-obsid0))
+    duration=\$((gpstime1-gpstime0+1))
+
+    # Make a directory for the combined data
+    outdir='${obsid_dir}/combined'
+    if [[ ! -d "\$outdir" ]]; then
+        mkdir -p "\$outdir" || log_err "Could not create directory: \$outdir"
+    elif [[ \$(shopt -s nullglob; count "\$outdir"/*.dat) -gt 0 ]]; then
+        log_err "Combined (.dat) files found in directory: \$outdir"
     fi
     """
 }
@@ -47,10 +52,7 @@ process GENERATE_RECOMBINE_JOBS {
     shell '/usr/bin/env', 'python'
 
     input:
-    val(obsid)
-    val(duration)
-    val(offset)
-    val(increment)
+    tuple val(obsid), val(offset), val(duration), val(increment)
 
     output:
     path("${obsid}_recombine_jobs.txt")
@@ -81,14 +83,15 @@ process RECOMBINE {
     time { "${500 * increment * task.attempt + 900} s" }
     errorStrategy { task.attempt > 1 ? 'finish' : 'retry' }
     maxRetries 1
-    maxForks 20
+    maxForks 30
     clusterOptions { "--nodes=1 --ntasks-per-node=${increment}" }
     beforeScript "module use ${params.module_dir}; module load vcstools/master; module load mwa-voltage/master"
 
     input:
-    tuple val(obsid_dir), val(download_dir)
-    tuple val(begin), val(increment)
     val(obsid)
+    val(obsid_dir)
+    val(download_dir)
+    tuple val(begin), val(increment)
 
     script:
     """
@@ -113,29 +116,35 @@ workflow {
     if (params.download_dir == null) {
         System.err.println("ERROR :: 'download_dir' not defined")
     }
-    if (params.offset == null) {
-        System.err.println("ERROR :: 'offset' not defined")
-    }
-    if (params.duration == null) {
-        System.err.println("ERROR :: 'duration' not defined")
-    }
     if (params.obsid == null) {
         System.err.println("ERROR :: 'obsid' not defined")
     }
-    if (params.download_dir != null \
-        && params.offset != null \
-        && params.duration != null \
-        && params.obsid != null) {
+    if (params.download_dir != null && params.obsid != null) {
             // If all inputs are defined, run the pipeline
 
             CHECK_DIRS("${params.vcs_dir}/${params.obsid}", params.download_dir)
 
-            GENERATE_RECOMBINE_JOBS(params.obsid, params.duration, params.offset, params.increment)
+            if (params.offset != null && params.duration != null) {
+                CHECK_DIRS.out
+                    .map { [Integer.valueOf(params.obsid), Integer.valueOf(params.offset), Integer.valueOf(params.duration), Integer.valueOf(params.increment)] }
+                    .set { data_info }
+            } else {
+                CHECK_DIRS.out
+                    .map { [Integer.valueOf(params.obsid), Integer.valueOf(it[0]), Integer.valueOf(it[1]), Integer.valueOf(params.increment)] }
+                    .set { data_info }
+            }
+
+            GENERATE_RECOMBINE_JOBS(data_info)
 
             recombine_jobs = GENERATE_RECOMBINE_JOBS.out
                 .splitCsv()
                 .map { job -> [Integer.valueOf(job[0]), Integer.valueOf(job[1])] }
             
-            RECOMBINE(CHECK_DIRS.out, recombine_jobs, params.obsid)
+            RECOMBINE(
+                params.obsid,
+                "${params.vcs_dir}/${params.obsid}",
+                params.download_dir,
+                recombine_jobs
+            )
         }
 }
