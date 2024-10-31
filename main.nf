@@ -101,7 +101,7 @@ process RECOMBINE {
     time { "${500 * increment * task.attempt + 900} s" }
     errorStrategy { task.attempt > 1 ? 'finish' : 'retry' }
     maxRetries 1
-    maxForks 30
+    maxForks { Integer.valueOf(params.max_forks) }
     clusterOptions { "--nodes=1 --ntasks-per-node=${increment}" }
     beforeScript "module use ${params.module_dir}; module load vcstools/master; module load mwa-voltage/master"
 
