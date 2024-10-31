@@ -10,8 +10,8 @@ process CHECK_DIRS {
     
     input:
     val(obsid)
-    val(obsid_dir)
     val(download_dir)
+    val(vcs_dir)
 
     output:
     tuple env(offset), env(duration)
@@ -24,8 +24,14 @@ process CHECK_DIRS {
     last_arg() { echo "\${@: -1}" | xargs -n1 basename; }
 
     # Check that the specified directories exist
-    [[ -d ${obsid_dir} ]] || log_err "Directory does not exist: ${obsid_dir}"
+    [[ -d ${vcs_dir} ]] || log_err "Directory does not exist: ${vcs_dir}"
     [[ -d ${download_dir} ]] || log_err "Directory does not exist: ${download_dir}"
+
+    # Check that the obs ID directory exists, if not make it
+    obsid_dir="${vcs_dir}/${obsid}"
+    if [[ ! -d "\$obsid_dir" ]]; then
+        mkdir "\$obsid_dir" || log_err "Could not create directory: \$obsid_dir"
+    fi
 
     # Check that the metafits file exists
     metafits="${obsid}_metafits_ppds.fits"
@@ -134,7 +140,7 @@ workflow {
     if (params.download_dir != null && params.obsid != null) {
             // If all inputs are defined, run the pipeline
 
-            CHECK_DIRS(params.obsid, "${params.vcs_dir}/${params.obsid}", params.download_dir)
+            CHECK_DIRS(params.obsid, params.download_dir, params.vcs_dir)
 
             if (params.offset != null && params.duration != null) {
                 CHECK_DIRS.out
