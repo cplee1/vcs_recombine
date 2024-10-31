@@ -37,7 +37,7 @@ process CHECK_DIRS {
     metafits='${obsid}_metafits_ppds.fits'
     if [[ ! -f "\$obsid_dir/\$metafits" ]]; then
         if [[ -f "${download_dir}/\$metafits" ]]; then
-            cp "${download_dir}/\$metafits" "$\{obsid_dir}" \\
+            cp "${download_dir}/\$metafits" "\${obsid_dir}" \\
                 || log_err "Could not copy metafits file into directory: \${obsid_dir}"
         else
             log_err "Could not locate file: \$metafits"
