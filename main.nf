@@ -24,21 +24,21 @@ process CHECK_DIRS {
     last_arg() { echo "\${@: -1}" | xargs -n1 basename; }
 
     # Check that the specified directories exist
-    [[ -d ${vcs_dir} ]] || log_err "Directory does not exist: ${vcs_dir}"
-    [[ -d ${download_dir} ]] || log_err "Directory does not exist: ${download_dir}"
+    [[ -d '${vcs_dir}' ]] || log_err "Directory does not exist: ${vcs_dir}"
+    [[ -d '${download_dir}' ]] || log_err "Directory does not exist: ${download_dir}"
 
     # Check that the obs ID directory exists, if not make it
-    obsid_dir="${vcs_dir}/${obsid}"
+    obsid_dir='${vcs_dir}/${obsid}'
     if [[ ! -d "\$obsid_dir" ]]; then
         mkdir "\$obsid_dir" || log_err "Could not create directory: \$obsid_dir"
     fi
 
     # Check that the metafits file exists
-    metafits="${obsid}_metafits_ppds.fits"
-    if [[ ! -f "${obsid_dir}/\$metafits" ]]; then
+    metafits='${obsid}_metafits_ppds.fits'
+    if [[ ! -f "\$obsid_dir/\$metafits" ]]; then
         if [[ -f "${download_dir}/\$metafits" ]]; then
-            cp "${download_dir}/\$metafits" "${obsid_dir}" \\
-                || log_err "Could not copy metafits file into directory: ${obsid_dir}"
+            cp "${download_dir}/\$metafits" "$\{obsid_dir}" \\
+                || log_err "Could not copy metafits file into directory: \${obsid_dir}"
         else
             log_err "Could not locate file: \$metafits"
         fi
@@ -55,7 +55,7 @@ process CHECK_DIRS {
     duration=\$((gpstime1-gpstime0+1))
 
     # Make a directory for the combined data
-    outdir='${obsid_dir}/combined'
+    outdir="\${obsid_dir}/combined"
     if [[ ! -d "\$outdir" ]]; then
         mkdir -p "\$outdir" || log_err "Could not create directory: \$outdir"
     elif [[ \$(shopt -s nullglob; count "\$outdir"/*.dat) -gt 0 ]]; then
