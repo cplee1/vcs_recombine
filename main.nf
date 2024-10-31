@@ -9,6 +9,7 @@
 process CHECK_DIRS {
     
     input:
+    val(obsid)
     val(obsid_dir)
     val(download_dir)
 
@@ -25,6 +26,17 @@ process CHECK_DIRS {
     # Check that the specified directories exist
     [[ -d ${obsid_dir} ]] || log_err "Directory does not exist: ${obsid_dir}"
     [[ -d ${download_dir} ]] || log_err "Directory does not exist: ${download_dir}"
+
+    # Check that the metafits file exists
+    metafits="${obsid}_metafits_ppds.fits"
+    if [[ ! -f "${obsid_dir}/\$metafits" ]]; then
+        if [[ -f "${download_dir}/\$metafits" ]]; then
+            cp "${download_dir}/\$metafits" "${obsid_dir}" \\
+                || log_err "Could not copy metafits file into directory: ${obsid_dir}"
+        else
+            log_err "Could not locate file: \$metafits"
+        fi
+    fi
 
     # Check that the raw data exists
     [[ \$(shopt -s nullglob; count '${download_dir}'/*.dat) -gt 0 ]] \\
@@ -122,7 +134,7 @@ workflow {
     if (params.download_dir != null && params.obsid != null) {
             // If all inputs are defined, run the pipeline
 
-            CHECK_DIRS("${params.vcs_dir}/${params.obsid}", params.download_dir)
+            CHECK_DIRS(params.obsid, "${params.vcs_dir}/${params.obsid}", params.download_dir)
 
             if (params.offset != null && params.duration != null) {
                 CHECK_DIRS.out
