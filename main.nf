@@ -9,8 +9,9 @@
 process CHECK_DIRS {
     
     input:
-    val(obsid_dir)
+    val(obsid)
     val(download_dir)
+    val(vcs_dir)
 
     output:
     tuple env(offset), env(duration)
@@ -23,8 +24,25 @@ process CHECK_DIRS {
     last_arg() { echo "\${@: -1}" | xargs -n1 basename; }
 
     # Check that the specified directories exist
-    [[ -d ${obsid_dir} ]] || log_err "Directory does not exist: ${obsid_dir}"
-    [[ -d ${download_dir} ]] || log_err "Directory does not exist: ${download_dir}"
+    [[ -d '${vcs_dir}' ]] || log_err "Directory does not exist: ${vcs_dir}"
+    [[ -d '${download_dir}' ]] || log_err "Directory does not exist: ${download_dir}"
+
+    # Check that the obs ID directory exists, if not make it
+    obsid_dir='${vcs_dir}/${obsid}'
+    if [[ ! -d "\$obsid_dir" ]]; then
+        mkdir "\$obsid_dir" || log_err "Could not create directory: \$obsid_dir"
+    fi
+
+    # Check that the metafits file exists
+    metafits='${obsid}_metafits_ppds.fits'
+    if [[ ! -f "\$obsid_dir/\$metafits" ]]; then
+        if [[ -f "${download_dir}/\$metafits" ]]; then
+            cp "${download_dir}/\$metafits" "\${obsid_dir}" \\
+                || log_err "Could not copy metafits file into directory: \${obsid_dir}"
+        else
+            log_err "Could not locate file: \$metafits"
+        fi
+    fi
 
     # Check that the raw data exists
     [[ \$(shopt -s nullglob; count '${download_dir}'/*.dat) -gt 0 ]] \\
@@ -37,7 +55,7 @@ process CHECK_DIRS {
     duration=\$((gpstime1-gpstime0+1))
 
     # Make a directory for the combined data
-    outdir='${obsid_dir}/combined'
+    outdir="\${obsid_dir}/combined"
     if [[ ! -d "\$outdir" ]]; then
         mkdir -p "\$outdir" || log_err "Could not create directory: \$outdir"
     elif [[ \$(shopt -s nullglob; count "\$outdir"/*.dat) -gt 0 ]]; then
@@ -83,7 +101,7 @@ process RECOMBINE {
     time { "${500 * increment * task.attempt + 900} s" }
     errorStrategy { task.attempt > 1 ? 'finish' : 'retry' }
     maxRetries 1
-    maxForks 30
+    maxForks params.max_forks
     clusterOptions { "--nodes=1 --ntasks-per-node=${increment}" }
     beforeScript "module use ${params.module_dir}; module load vcstools/master; module load mwa-voltage/master"
 
@@ -114,15 +132,15 @@ process RECOMBINE {
 workflow {
 
     if (params.download_dir == null) {
-        System.err.println("ERROR :: 'download_dir' not defined")
+        System.err.println("ERROR: 'download_dir' not defined")
     }
     if (params.obsid == null) {
-        System.err.println("ERROR :: 'obsid' not defined")
+        System.err.println("ERROR: 'obsid' not defined")
     }
     if (params.download_dir != null && params.obsid != null) {
             // If all inputs are defined, run the pipeline
 
-            CHECK_DIRS("${params.vcs_dir}/${params.obsid}", params.download_dir)
+            CHECK_DIRS(params.obsid, params.download_dir, params.vcs_dir)
 
             if (params.offset != null && params.duration != null) {
                 CHECK_DIRS.out
