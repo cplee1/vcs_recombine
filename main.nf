@@ -126,10 +126,10 @@ process RECOMBINE {
 workflow {
 
     if (params.download_dir == null) {
-        System.err.println("ERROR :: 'download_dir' not defined")
+        System.err.println("ERROR: 'download_dir' not defined")
     }
     if (params.obsid == null) {
-        System.err.println("ERROR :: 'obsid' not defined")
+        System.err.println("ERROR: 'obsid' not defined")
     }
     if (params.download_dir != null && params.obsid != null) {
             // If all inputs are defined, run the pipeline
