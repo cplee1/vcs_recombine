@@ -14,7 +14,8 @@ nextflow run cplee1/vcs_recombine \
     --obsid <OBSID> \
     [--offset <OFFSET>] \
     [--duration <DURATION>] \
-    [--vcs_dir <PATH>]
+    [--vcs_dir <PATH>] \
+    [--max_forks <MAX_FORKS>]
 ```
 
 The required options are as follows:
@@ -33,3 +34,6 @@ The VCS directory can be specifed with:
 
   - `--vcs_dir` : The path to the parent directory containing the obs ID directory. Default: `/scratch/mwavcs/$USER/vcs_downloads`
 
+The number of simultaneous recombine jobs submitted to the Slurm queue can be controlled with:
+
+  - `--max_forks` : The number of allowed forks of the recombine process. Default: 30
