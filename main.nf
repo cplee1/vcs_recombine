@@ -55,19 +55,17 @@ process CHECK_DIRS {
     duration=\$((gpstime1-gpstime0+1))
 
     # Make a directory for the combined data
-    outdir="\${obsid_dir}/combined"
-    if [[ ! -d "\$outdir" ]]; then
-        mkdir -p "\$outdir" || log_err "Could not create directory: \$outdir"
-    elif [[ \$(shopt -s nullglob; count "\$outdir"/*.dat) -gt 0 ]]; then
-        log_err "Combined (.dat) files found in directory: \$outdir"
+    dest_dir="\${obsid_dir}/combined"
+    if [[ ! -d "\$dest_dir" ]]; then
+        mkdir -p "\$dest_dir" || log_err "Could not create directory: \$dest_dir"
+    elif [[ \$(shopt -s nullglob; count "\$dest_dir"/*.dat) -gt 0 ]]; then
+        log_err "Combined (.dat) files found in directory: \$dest_dir"
     fi
     """
 }
 
 process GENERATE_RECOMBINE_JOBS {
-
-    beforeScript "module use ${params.module_dir}; module load python/3.8.2"
-    shell '/usr/bin/env', 'python'
+    label 'python'
 
     input:
     tuple val(obsid), val(offset), val(duration), val(increment)
@@ -77,92 +75,84 @@ process GENERATE_RECOMBINE_JOBS {
 
     script:
     """
-    import csv
-
-    begin = ${obsid + offset}
-    end = ${obsid + offset + duration}
-    init_increment = ${increment}
-
-    with open(f"${obsid}_recombine_jobs.txt", "w") as outfile:
-        writer = csv.writer(outfile, delimiter=",")
-        for time_step in range(begin, end, init_increment):
-            if time_step + init_increment > end:
-                increment = end - time_step + 1
-            else:
-                increment = init_increment
-            writer.writerow([time_step, increment])
+    generate_recombine_jobs.py \\
+        --obsid ${obsid} \\
+        --offset ${offset} \\
+        --duration ${duration} \\
+        --increment ${increment}
     """
 }
 
 process RECOMBINE {
-
-    label 'cpu'
-    memory { "${increment * 5} GB" }
-    time { "${500 * increment * task.attempt + 900} s" }
+    
     errorStrategy { task.attempt > 1 ? 'finish' : 'retry' }
     maxRetries 1
-    maxForks params.max_forks
-    clusterOptions { "--nodes=1 --ntasks-per-node=${increment}" }
-    beforeScript "module use ${params.module_dir}; module load vcstools/master; module load mwa-voltage/master"
 
     input:
-    val(obsid)
-    val(obsid_dir)
-    val(download_dir)
     tuple val(begin), val(increment)
+    val(obsid)
+    val(download_dir)
+    val(vcs_dir)
 
     script:
     """
-    srun --export=all recombine.py \\
-    -o ${obsid} \\
-    -s ${begin} \\
-    -d ${increment} \\
-    -w ${download_dir} \\
-    -p ${obsid_dir}
-
-    checks.py \\
-    -m recombine \\
-    -o ${obsid} \\
-    -w ${obsid_dir}/combined \\
-    -b ${begin} \\
-    -i ${increment}
+    srun -N 1 -n ${increment} -m block:block:block recombine_wrapper \\
+        ${obsid} \\
+        ${begin} \\
+        ${vcs_dir}/${obsid}/${obsid}_metafits_ppds.fits \\
+        ${download_dir} \\
+        ${vcs_dir}/${obsid}/combined
     """
 }
 
 workflow {
 
+    // Check that the required parameters have been provided
     if (params.download_dir == null) {
-        System.err.println("ERROR: 'download_dir' not defined")
+        System.err.println("ERROR: Parameter '--download_dir' not specified")
     }
     if (params.obsid == null) {
-        System.err.println("ERROR: 'obsid' not defined")
+        System.err.println("ERROR: Parameter '--obsid' not specified")
     }
     if (params.download_dir != null && params.obsid != null) {
-            // If all inputs are defined, run the pipeline
-
             CHECK_DIRS(params.obsid, params.download_dir, params.vcs_dir)
 
             if (params.offset != null && params.duration != null) {
-                CHECK_DIRS.out
-                    .map { [Integer.valueOf(params.obsid), Integer.valueOf(params.offset), Integer.valueOf(params.duration), Integer.valueOf(params.increment)] }
+                Channel
+                    .of(
+                        [
+                            Integer.valueOf(params.obsid),
+                            Integer.valueOf(params.offset),
+                            Integer.valueOf(params.duration),
+                            Integer.valueOf(params.rc_ntasks)
+                        ]
+                    )
                     .set { data_info }
             } else {
                 CHECK_DIRS.out
-                    .map { [Integer.valueOf(params.obsid), Integer.valueOf(it[0]), Integer.valueOf(it[1]), Integer.valueOf(params.increment)] }
+                    .map {
+                        [
+                            Integer.valueOf(params.obsid),
+                            Integer.valueOf(it[0]),
+                            Integer.valueOf(it[1]),
+                            Integer.valueOf(params.rc_ntasks)
+                        ]
+                    }
                     .set { data_info }
             }
 
             GENERATE_RECOMBINE_JOBS(data_info)
 
-            recombine_jobs = GENERATE_RECOMBINE_JOBS.out
+            GENERATE_RECOMBINE_JOBS.out
                 .splitCsv()
                 .map { job -> [Integer.valueOf(job[0]), Integer.valueOf(job[1])] }
+                .set { recombine_jobs }
             
             RECOMBINE(
+                recombine_jobs,
                 params.obsid,
-                "${params.vcs_dir}/${params.obsid}",
                 params.download_dir,
-                recombine_jobs
+                params.vcs_dir
             )
         }
 }
