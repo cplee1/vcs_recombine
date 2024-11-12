@@ -96,7 +96,7 @@ process RECOMBINE {
 
     script:
     """
-    srun -N 1 -n ${increment} -c ${params.rc_cpus_per_task} -m block:block:block recombine_wrapper \\
+    srun -N \$SLURM_JOB_NUM_NODES -n \$SLURM_NTASKS -c \$SLURM_CPUS_PER_TASK -m block:block:block recombine_wrapper \\
         ${obsid} \\
         ${begin} \\
         ${vcs_dir}/${obsid}/${obsid}_metafits_ppds.fits \\
