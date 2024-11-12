@@ -15,7 +15,7 @@ nextflow run cplee1/vcs_recombine \
     [--offset <OFFSET>] \
     [--duration <DURATION>] \
     [--vcs_dir <PATH>] \
-    [--max_forks <MAX_FORKS>]
+    [--rc_max_forks <MAX_FORKS>]
 ```
 
 The required options are as follows:
@@ -32,8 +32,8 @@ If you want to manually specify the data to recombine, you can optionally specif
 The combined data will be placed in the directory `$vcs_dir/$obsid/combined`. 
 The VCS directory can be specifed with:
 
-  - `--vcs_dir` : The path to the parent directory containing the obs ID directory. Default: `/scratch/mwavcs/$USER/vcs_downloads`
+  - `--vcs_dir` : The path to the parent directory containing the obs ID directory. Default: `/scratch/mwavcs/$USER`
 
 The number of simultaneous recombine jobs submitted to the Slurm queue can be controlled with:
 
-  - `--max_forks` : The number of allowed forks of the recombine process. Default: 30
+  - `--rc_max_forks` : The number of allowed forks of the recombine process. Default: 20

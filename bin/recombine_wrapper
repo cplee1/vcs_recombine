@@ -1,0 +1,37 @@
+#!/usr/bin/env bash
+
+obsid=$1
+start_time=$2
+metafits=$3
+src_dir=$4
+dest_dir=$5
+
+gps_time=$((start_time + SLURM_PROCID))
+
+printf "[Process %2d] Starting second %d...\n" $SLURM_PROCID $gps_time
+recombine \
+    -o $obsid \
+    -t $gps_time \
+    -m $metafits \
+    -i $dest_dir \
+    -f ${src_dir}/${obsid}_${gps_time}_vcs*.dat
+printf "[Process %2d] Finished second %d...\n" $SLURM_PROCID $gps_time
+
+err_file=${obsid}_${gps_time}_errors.txt
+touch $err_file
+echo ${dest_dir}/${obsid}_${gps_time}_ch*.dat \
+    | xargs du -b \
+    | awk '($1!=327680000){print $2}' \
+    > $err_file
+
+if [[ ! -z "$(cat $err_file)" ]]; then
+    printf "[Process %2d] Error: Invalid sizes for file(s): %s\n" $SLURM_PROCID "$(cat $err_file | xargs echo)"
+    exit 1
+fi
+
+if [[ ! -f ${dest_dir}/${obsid}_${gps_time}_ics.dat ]]; then
+    printf "[Process %2d] Error: No ICS found for second %d\n" $SLURM_PROCID $gps_time
+    exit 1
+fi
+
+exit 0
