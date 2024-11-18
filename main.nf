@@ -107,6 +107,11 @@ process RECOMBINE {
 
 workflow {
 
+    // Check that a cluster config was loaded
+    if (params.cluster == null) {
+        System.err.println("ERROR: Cluster not recognised")
+    }
+
     // Check that the required parameters have been provided
     if (params.download_dir == null) {
         System.err.println("ERROR: Parameter '--download_dir' not specified")
@@ -114,7 +119,9 @@ workflow {
     if (params.obsid == null) {
         System.err.println("ERROR: Parameter '--obsid' not specified")
     }
-    if (params.download_dir != null && params.obsid != null) {
+
+    // Run the pipeline
+    if (params.cluster != null && params.download_dir != null && params.obsid != null) {
             CHECK_DIRS(params.obsid, params.download_dir, params.vcs_dir)
 
             if (params.offset != null && params.duration != null) {
